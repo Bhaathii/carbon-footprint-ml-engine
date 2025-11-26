@@ -105,7 +105,7 @@ The application collects 13 different parameters from user input and validates t
 ### 4.2 Machine Learning Model
 - Algorithm: Random Forest Classifier
 - Number of trees: 300
-- Training data: 1000+ tourism trips
+- Training data: 5000+ tourism trips
 - Features: 13 input parameters
 - Output classes: Low, Medium, High emissions
 
@@ -187,7 +187,7 @@ import joblib
 import os
 
 # Load dataset
-data_path = os.path.join(os.path.dirname(__file__), "../data/tourism_1000_rows.csv")
+data_path = os.path.join(os.path.dirname(__file__), "../data/tourism_5000_rows.csv")
 df = pd.read_csv(data_path)
 
 # Select features
