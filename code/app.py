@@ -68,6 +68,14 @@ def get_recommendation(level):
     else:
         return "No recommendation available."
 
+def align_features(input_df, expected_columns):
+    df_local = pd.get_dummies(input_df)
+    for col in expected_columns:
+        if col not in df_local.columns:
+            df_local[col] = 0
+    df_local = df_local[expected_columns]
+    return df_local
+
 # Prediction Button
 if st.button("🔮 Predict Emission Level", use_container_width=True):
     # Prepare input data in correct order
@@ -88,7 +96,8 @@ if st.button("🔮 Predict Emission Level", use_container_width=True):
     }
     
     input_df = pd.DataFrame([input_dict])
-    input_data = input_df[feature_columns].values
+    aligned_df = align_features(input_df, feature_columns)
+    input_data = aligned_df.values
     
     prediction = model.predict(input_data)[0]
 

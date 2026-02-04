@@ -31,24 +31,37 @@ df['emission_level'] = df['total_trip_emissions_kgCO2'].apply(classify_emission)
 print("\nEmission Level Distribution:")
 print(df['emission_level'].value_counts())
 
-# Select relevant features for prediction
-feature_columns = [
-    'trip_days', 'distance_km', 'occupancy', 'congestion_factor', 
-    'terrain_factor', 'nightly_kwh_est', 'grid_ef_kgCO2_per_kWh',
-    'food_emissions_kgCO2', 'waste_emissions_kgCO2', 
-    'plastic_emissions_kgCO2', 'transport_emissions_kgCO2',
-    'accommodation_elec_kgCO2', 'accommodation_gen_kgCO2'
+# REMOVE DATA LEAKAGE: Drop all emission component columns that directly contribute to total_trip_emissions_kgCO2
+leak_cols = [
+    'emission_level',
+    'total_trip_emissions_kgCO2',
+    'record_id',
+    'trip_start_date',
+    # Emission component columns (DATA LEAKAGE - these are used to calculate total emissions)
+    'transport_emissions_kgCO2',
+    'accommodation_elec_kgCO2',
+    'accommodation_gen_kgCO2',
+    'festival_gen_emissions_kgCO2',
+    'pilgrimage_emissions_kgCO2',
+    'food_emissions_kgCO2',
+    'rice_emissions_kgCO2',
+    'waste_emissions_kgCO2',
+    'plastic_emissions_kgCO2'
 ]
 
-# Check for missing columns
-missing_cols = [col for col in feature_columns if col not in df.columns]
-if missing_cols:
-    print(f"\n⚠️ Warning: Missing columns: {missing_cols}")
-    print(f"Available columns: {df.columns.tolist()}")
-    feature_columns = [col for col in feature_columns if col in df.columns]
+print("\nRemoving data leakage columns:")
+for col in leak_cols:
+    if col in df.columns:
+        print(f"  - {col}")
 
-# Handle missing values
-X = df[feature_columns].fillna(0)
+feature_df = df.drop(columns=[col for col in leak_cols if col in df.columns])
+
+cat_cols = feature_df.select_dtypes(include=['object']).columns.tolist()
+feature_df = pd.get_dummies(feature_df, columns=cat_cols, drop_first=True)
+feature_df = feature_df.fillna(0)
+
+feature_columns = feature_df.columns.tolist()
+X = feature_df
 y = df['emission_level']
 
 print("\nFeatures shape:", X.shape)
@@ -57,8 +70,17 @@ print("Target shape:", y.shape)
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# ML model
-model = RandomForestClassifier(n_estimators=300, random_state=42, max_depth=15)
+# ML model (optimized Random Forest without data leakage)
+model = RandomForestClassifier(
+    n_estimators=800,
+    random_state=42,
+    max_depth=20,
+    max_features='sqrt',
+    min_samples_leaf=2,
+    min_samples_split=4,
+    class_weight='balanced',
+    n_jobs=-1
+)
 model.fit(X_train, y_train)
 
 # Predict test set
@@ -85,5 +107,5 @@ os.makedirs(model_dir, exist_ok=True)
 joblib.dump(model, os.path.join(model_dir, "model.pkl"))
 joblib.dump(feature_columns, os.path.join(model_dir, "features.pkl"))
 
-print("\n✓ Model saved successfully!")
-print("✓ Features saved successfully!")
+print("\nModel saved successfully!")
+print("Features saved successfully!")

@@ -29,9 +29,18 @@ sample_data = {
     'accommodation_gen_kgCO2': 11.095
 }
 
+def align_features(input_df, expected_columns):
+    df_local = pd.get_dummies(input_df)
+    for col in expected_columns:
+        if col not in df_local.columns:
+            df_local[col] = 0
+    df_local = df_local[expected_columns]
+    return df_local
+
 # Create DataFrame and ensure column order
 data_df = pd.DataFrame([sample_data])
-data = data_df[feature_columns].values
+aligned_df = align_features(data_df, feature_columns)
+data = aligned_df.values
 
 pred = model.predict(data)[0]
 
